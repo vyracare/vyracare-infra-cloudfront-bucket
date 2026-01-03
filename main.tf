@@ -8,6 +8,18 @@ resource "aws_s3_bucket" "vyracareshell_bucket" {
   force_destroy = true
 }
 
+# CORS for MFEs served from different CloudFront domains.
+resource "aws_s3_bucket_cors_configuration" "vyracareshell_bucket_cors" {
+  bucket = aws_s3_bucket.vyracareshell_bucket.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "HEAD", "OPTIONS"]
+    allowed_origins = ["*"]
+    max_age_seconds = 3600
+  }
+}
+
 # Configuração SPA (index.html para Angular)
 resource "aws_s3_bucket_website_configuration" "vyracareshell_bucket_website" {
   bucket = aws_s3_bucket.vyracareshell_bucket.id
