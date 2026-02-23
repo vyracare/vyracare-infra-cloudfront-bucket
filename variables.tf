@@ -1,7 +1,11 @@
 variable "project_name" {
   type        = string
-  description = "Vyracare Shell"
-  default     = "vyracare-app-shell"
+  description = "Nome do repositorio que esta rodando a esteira"
+
+  validation {
+    condition     = trim(var.project_name) != ""
+    error_message = "project_name nao pode ser vazio. Use o nome do repositorio que esta rodando a esteira."
+  }
 }
 
 variable "region" {
@@ -12,5 +16,6 @@ variable "region" {
 
 variable "cloudfront_comment" {
   type        = string
-  default     = "CloudFront Distribution for Angular Shell"
+  description = "Comentario do CloudFront. Se vazio, usa o nome do repositorio."
+  default     = ""
 }

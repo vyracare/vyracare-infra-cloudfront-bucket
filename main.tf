@@ -2,15 +2,19 @@ provider "aws" {
   region = var.region
 }
 
+locals {
+  cloudfront_comment = var.cloudfront_comment != "" ? var.cloudfront_comment : "${var.project_name} em Angular CloudFront"
+}
+
 # Bucket S3 privado
-resource "aws_s3_bucket" "vyracareshell_bucket" {
+resource "aws_s3_bucket" "app_bucket" {
   bucket        = var.project_name
   force_destroy = true
 }
 
 # CORS for MFEs served from different CloudFront domains.
-resource "aws_s3_bucket_cors_configuration" "vyracareshell_bucket_cors" {
-  bucket = aws_s3_bucket.vyracareshell_bucket.id
+resource "aws_s3_bucket_cors_configuration" "app_bucket_cors" {
+  bucket = aws_s3_bucket.app_bucket.id
 
   cors_rule {
     allowed_headers = ["*"]
@@ -21,8 +25,8 @@ resource "aws_s3_bucket_cors_configuration" "vyracareshell_bucket_cors" {
 }
 
 # Configuração SPA (index.html para Angular)
-resource "aws_s3_bucket_website_configuration" "vyracareshell_bucket_website" {
-  bucket = aws_s3_bucket.vyracareshell_bucket.id
+resource "aws_s3_bucket_website_configuration" "app_bucket_website" {
+  bucket = aws_s3_bucket.app_bucket.id
 
   index_document {
     suffix = "index.html"
@@ -39,8 +43,8 @@ resource "aws_cloudfront_origin_access_identity" "oai" {
 }
 
 # Política de bucket para permitir CloudFront acessar objetos
-resource "aws_s3_bucket_policy" "vyracareshell_bucket_policy" {
-  bucket = aws_s3_bucket.vyracareshell_bucket.id
+resource "aws_s3_bucket_policy" "app_bucket_policy" {
+  bucket = aws_s3_bucket.app_bucket.id
 
   policy = jsonencode({
     Version = "2012-10-17",
@@ -51,17 +55,17 @@ resource "aws_s3_bucket_policy" "vyracareshell_bucket_policy" {
           AWS = aws_cloudfront_origin_access_identity.oai.iam_arn
         },
         Action   = "s3:GetObject",
-        Resource = "${aws_s3_bucket.vyracareshell_bucket.arn}/*"
+        Resource = "${aws_s3_bucket.app_bucket.arn}/*"
       }
     ]
   })
 }
 
 # CloudFront Distribution
-resource "aws_cloudfront_distribution" "vyracareshell_distribution" {
+resource "aws_cloudfront_distribution" "app_distribution" {
   origin {
-    domain_name = aws_s3_bucket.vyracareshell_bucket.bucket_regional_domain_name
-    origin_id   = "S3-vyracare-app-shell"
+    domain_name = aws_s3_bucket.app_bucket.bucket_regional_domain_name
+    origin_id   = "S3-${var.project_name}"
 
     s3_origin_config {
       origin_access_identity = "origin-access-identity/cloudfront/${aws_cloudfront_origin_access_identity.oai.id}"
@@ -70,11 +74,12 @@ resource "aws_cloudfront_distribution" "vyracareshell_distribution" {
 
   enabled             = true
   default_root_object = "index.html"
+  comment             = local.cloudfront_comment
 
   default_cache_behavior {
     allowed_methods        = ["GET", "HEAD", "OPTIONS"]
     cached_methods         = ["GET", "HEAD"]
-    target_origin_id       = "S3-vyracare-app-shell"
+    target_origin_id       = "S3-${var.project_name}"
     viewer_protocol_policy = "redirect-to-https"
 
     forwarded_values {
