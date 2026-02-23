@@ -3,7 +3,7 @@ variable "project_name" {
   description = "Nome do repositorio que esta rodando a esteira"
 
   validation {
-    condition     = trim(var.project_name) != ""
+    condition     = trimspace(var.project_name) != ""
     error_message = "project_name nao pode ser vazio. Use o nome do repositorio que esta rodando a esteira."
   }
 }
